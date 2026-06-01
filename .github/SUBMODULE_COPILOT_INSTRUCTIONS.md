@@ -1,3 +1,5 @@
+<!-- BEGIN GENERATED: synced from the Reverse-Proxy infra repo (.github/SUBMODULE_COPILOT_INSTRUCTIONS.md). DO NOT EDIT inside this block — run scripts/sync-app-docs.sh. -->
+
 # Copilot Instructions for App Development
 
 This repository is deployed as a submodule within a larger infrastructure managed by a Reverse Proxy system.
@@ -121,11 +123,31 @@ Send `"mode": "subscription"` to `/checkout` with **either** a pre-made Stripe `
 
 **Subscription lifecycle is delivered by PUSH, not poll.** payment-service receives the Stripe subscription/invoice webhooks, persists them, and **calls** your app at `POST /api/entitlements/subscription` for each lifecycle change (activate / renew / update / payment-failed / cancel). Unlike read-only verify, **this endpoint mutates your app's entitlement state**. Every app that sells subscriptions must implement it — see the "Subscription lifecycle" section of [ENTITLEMENTS_VERIFY_CONTRACT.md](ENTITLEMENTS_VERIFY_CONTRACT.md) for the event list, body schema, status codes, and idempotency rules.
 
+**Customer billing portal.** To let a subscriber self-serve (update card, view invoices, cancel), `POST /portal-session` to payment-service (`X-Internal-Token: <ENTITLEMENTS_VERIFY_TOKEN>`) with `{ "customer_id": "cus_…", "app_id": "your-app-name", "return_url": "https://…" }` and redirect the user to the returned `{ "url": "https://billing.stripe.com/…" }`. The Stripe customer lives in **our** account, so your app can't mint this session itself — call this route instead of holding a Stripe key. Ownership is `app_id`-scoped server-side (the customer must own one of your subscriptions; unknown/cross-app → `404`). `customer_id` is the `cus_…` you stored from the subscription-push payload / `customer.subscription.created` webhook; `return_url` is optional.
+
 ### Reversals (refund / chargeback / fraud)
 When a Stripe **refund**, **chargeback** (dispute), or **early-fraud-warning** lands, payment-service **pushes** it to your app at `POST /api/entitlements/reversal` (server-to-server, same `X-Internal-Token` auth, derived from `ENTITLEMENT_VERIFY_URL_<APPID>` by swapping the path). This covers **both** one-time charges and subscription charges. **Any app that sells anything must implement it** to revoke access on money-back events. The events are `refunded` / `chargeback_opened` / `chargeback_lost` / `fraud_warning` → **REVOKE** that purchase's entitlement immediately, and `chargeback_won` → **RESTORE** it. This is the opposite of a subscription `canceled` (which keeps already-paid time): a reversal means the money is gone or held, so access is pulled now. The push payload's top-level `product_id` is **your internal product key** (e.g. `nclex-monthly`), not a Stripe `prod_…` id. ⚠️ There is **no reconciliation pull** for reversals, so the receiver must be deployed **before** payment-service starts sending. Full contract (body schema, status codes, idempotency key `(charge_id, event)`): the "Reversals" section of [ENTITLEMENTS_VERIFY_CONTRACT.md](ENTITLEMENTS_VERIFY_CONTRACT.md).
 
 ### Checkout branding
 Configure per-app Stripe Checkout branding by setting env var `STRIPE_BRANDING_<APPID>` to a JSON object (keys: `display_name`, `background_color`, `button_color`, `border_style`, `font_family`, `logo_url`, `icon_url`). Branding applies to **hosted** checkout only — Stripe rejects branding on `embedded`/`custom` ui_mode, so it is skipped there. No app code change is required; the service reads the env var by `app_id`.
+
+### Promotion codes / discounts
+Stripe coupons and promotion codes are supported on `/checkout` via three optional, **mutually exclusive** body fields (the coupon/code must already exist in our Stripe account — the service references it, it never creates one):
+- `"allow_promotion_codes": true` — show the customer-redeemable "Add promotion code" field so the buyer types their own code.
+- `"promotion_code": "promo_…"` — pre-apply a specific promotion code (buyer sees it already applied, no field).
+- `"coupon": "<coupon-id>"` — pre-apply a specific coupon directly.
+
+```json
+{
+  "app_id": "your-app-name",
+  "price_id": "price_...",
+  "allow_promotion_codes": true,
+  "success_url": "https://your-app.com/success",
+  "cancel_url": "https://your-app.com/cancel"
+}
+```
+
+Precedence when more than one is sent is `promotion_code` > `coupon` > `allow_promotion_codes` (a pre-applied discount wins and suppresses the redeemable field — Stripe rejects sending both). These work for **one-time and subscription** mode and for **both** hosted and embedded ui_mode. No env var or per-app config is needed; the fields are per-request, so your app decides when to offer a discount.
 
 ### Reading `/transaction` — customer PII is token-gated
 `GET /transaction?id=<session_id>` always returns the non-sensitive fields to any caller, so unauthenticated status polling keeps working: `id`, `app_id`, `amount`, `currency`, `status`, `created_at`.
@@ -258,3 +280,5 @@ resp, err := http.Post("http://localhost:8083/api/image/generate",
 ## Troubleshooting
 - **Deployment Loop:** If the server keeps rebuilding, check if `main` or `dist/` files are being tracked by git. Remove them with `git rm --cached <file>`.
 - **Port Conflicts:** Ensure you are using `os.Getenv("PORT")`.
+
+<!-- END GENERATED. App-specific content may follow below and is preserved by the sync. -->
