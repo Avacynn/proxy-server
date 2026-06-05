@@ -29,10 +29,14 @@ The endpoint set is defined in **two places that MUST stay 1:1**:
 2. `docker-compose.yml` defines **50** `vpn-*` services, each publishing
    `88xx:8888` on a unique static IP `172.22.0.x`.
 
-`main.go` round-robins blindly over all 50. **If a host port has no live
-container, that slot returns `502` (`proxyconnect … connection refused`)** —
-and consumers see it as an upstream failure (e.g. ks-redeemer logs
-"all 5 attempts blocked by game server"). So a shrunk farm degrades silently.
+`main.go` round-robins over the endpoints, but **`StartHealthChecks` probes each
+tunnel every 60s** (`GET https://api.ipify.org` through the endpoint) and flips
+`Active` — so `GetNextEndpoint`/`GetRandomEndpoint` automatically skip tunnels
+that can't currently reach the internet (e.g. dead PIA regions, see below).
+`/status` reflects the live result. Without this a dead slot returns `502`
+(`proxyconnect …`) straight to the caller (e.g. ks-redeemer "all 5 attempts
+blocked by game server"). Endpoints start optimistically `Active` and converge
+~10s after boot, so the first few seconds post-restart may still 502.
 
 **Verify correspondence after any change:**
 ```bash

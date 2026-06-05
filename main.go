@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -142,6 +143,49 @@ func newEndpointClient(proxyURL string) *http.Client {
 	}
 }
 
+// healthCheckURL is a tiny, reliable target used to verify a tunnel can
+// actually reach the internet. Kept lightweight since it is fetched once per
+// endpoint per health-check cycle.
+const healthCheckURL = "https://api.ipify.org"
+
+// setActive updates the endpoint's Active flag and reports whether it changed.
+func (e *VPNEndpoint) setActive(active bool) (changed bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	changed = e.Active != active
+	e.Active = active
+	return changed
+}
+
+// isActive reports the endpoint's current Active flag.
+func (e *VPNEndpoint) isActive() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.Active
+}
+
+// probe checks whether the endpoint's VPN tunnel can currently reach the
+// internet. Dead PIA regions (gateway EHOSTUNREACH / TLS failures) fail here so
+// the routing strategies can skip them instead of returning 502 to callers.
+func (e *VPNEndpoint) probe() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthCheckURL, nil)
+	if err != nil {
+		return false
+	}
+
+	resp, err := e.client.Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 1024))
+
+	return resp.StatusCode >= 200 && resp.StatusCode < 400
+}
+
 type VPNPool struct {
 	endpoints []*VPNEndpoint
 	current   int
@@ -279,6 +323,50 @@ func (p *VPNPool) ListEndpoints() []*VPNEndpoint {
 	defer p.mu.Unlock()
 
 	return p.endpoints
+}
+
+// StartHealthChecks probes every endpoint on an interval and flips Active so the
+// routing strategies skip tunnels that cannot currently reach the internet
+// (e.g. PIA regions whose gateways are unreachable). It runs one immediate pass,
+// then repeats every interval. Non-blocking — startup is not delayed; endpoints
+// begin optimistically Active and converge after the first pass (~10s).
+func (p *VPNPool) StartHealthChecks(interval time.Duration) {
+	go func() {
+		p.runHealthCheck()
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for range ticker.C {
+			p.runHealthCheck()
+		}
+	}()
+}
+
+// runHealthCheck probes all endpoints concurrently and updates their Active flag.
+func (p *VPNPool) runHealthCheck() {
+	var wg sync.WaitGroup
+	for _, ep := range p.endpoints {
+		wg.Add(1)
+		go func(ep *VPNEndpoint) {
+			defer wg.Done()
+			ok := ep.probe()
+			if ep.setActive(ok) {
+				state := "INACTIVE"
+				if ok {
+					state = "ACTIVE"
+				}
+				log.Printf("[health] %s (%s) -> %s", ep.Name, ep.ProxyURL, state)
+			}
+		}(ep)
+	}
+	wg.Wait()
+
+	active := 0
+	for _, ep := range p.endpoints {
+		if ep.isActive() {
+			active++
+		}
+	}
+	log.Printf("[health] %d/%d endpoints active", active, len(p.endpoints))
 }
 
 type ProxyServer struct {
@@ -479,6 +567,10 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	server := NewProxyServer()
+
+	// Continuously probe tunnels so round-robin/random routing skips endpoints
+	// whose VPN region is currently unreachable (otherwise callers get 502s).
+	server.vpnPool.StartHealthChecks(60 * time.Second)
 
 	http.HandleFunc("/", server.handleRoot)
 	http.HandleFunc("/proxy", requireAPIKey(server.handleProxy))
