@@ -407,17 +407,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Wyoming
-  vpn-wyoming:
+  # PIA VPN - US New York
+  vpn-newyork:
     image: qmcgaw/gluetun
-    container_name: vpn-wyoming
+    container_name: vpn-newyork
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Wyoming
+      - SERVER_REGIONS=US New York
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1161,17 +1161,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US New Hampshire
-  vpn-newhampshire:
+  # PIA VPN - CA Vancouver
+  vpn-vancouver:
     image: qmcgaw/gluetun
-    container_name: vpn-newhampshire
+    container_name: vpn-vancouver
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US New Hampshire
+      - SERVER_REGIONS=CA Vancouver
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1248,17 +1248,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Oklahoma
-  vpn-oklahoma:
+  # PIA VPN - Mexico
+  vpn-mexico:
     image: qmcgaw/gluetun
-    container_name: vpn-oklahoma
+    container_name: vpn-mexico
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Oklahoma
+      - SERVER_REGIONS=Mexico
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1277,17 +1277,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Rhode Island
-  vpn-rhodeisland:
+  # PIA VPN - Netherlands
+  vpn-netherlands:
     image: qmcgaw/gluetun
-    container_name: vpn-rhodeisland
+    container_name: vpn-netherlands
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Rhode Island
+      - SERVER_REGIONS=Netherlands
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1306,17 +1306,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US South Carolina
-  vpn-southcarolina:
+  # PIA VPN - France
+  vpn-france:
     image: qmcgaw/gluetun
-    container_name: vpn-southcarolina
+    container_name: vpn-france
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US South Carolina
+      - SERVER_REGIONS=France
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1335,17 +1335,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US South Dakota
-  vpn-southdakota:
+  # PIA VPN - UK London
+  vpn-uklondon:
     image: qmcgaw/gluetun
-    container_name: vpn-southdakota
+    container_name: vpn-uklondon
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US South Dakota
+      - SERVER_REGIONS=UK London
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1393,17 +1393,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Vermont
-  vpn-vermont:
+  # PIA VPN - DE Berlin
+  vpn-berlin:
     image: qmcgaw/gluetun
-    container_name: vpn-vermont
+    container_name: vpn-berlin
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Vermont
+      - SERVER_REGIONS=DE Berlin
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:

@@ -62,13 +62,31 @@ cd /opt/reverse-proxy/apps/proxy-server && docker compose up -d   # → all 50
 docker ps --filter name=vpn- --format '{{.Names}}' | wc -l        # → 50
 ```
 
-**Weekly maintenance cron** (root crontab on the Main VPS) restarts the farm
-Sunday 3am to clear gluetun memory leaks. It is **reconcile-based** so it also
-revives any stopped container (the old version restarted only already-running
-containers — that was the ratchet):
+**Weekly maintenance cron** (root crontab on the Main VPS) Sunday 3am: pulls a
+fresh gluetun image (keeps the server list current — see below), recreates the
+farm (clears memory leaks), and reconciles any stopped container (the old
+version restarted only already-running containers — that was the ratchet):
 ```cron
-0 3 * * 0 cd /opt/reverse-proxy/apps/proxy-server && docker compose up -d --force-recreate --remove-orphans >> /var/log/vpn-restart.log 2>&1
+0 3 * * 0 cd /opt/reverse-proxy/apps/proxy-server && docker compose pull && docker compose up -d --force-recreate --remove-orphans >> /var/log/vpn-restart.log 2>&1
 ```
+
+## Dead regions = a STALE server list, not bad config
+
+gluetun bakes a PIA `servers.json` into its image. If that snapshot ages, the
+few server IPs it lists for a region get decommissioned by PIA and the tunnel
+fails with `EHOSTUNREACH` / `TLS handshake failed` — the health-check then marks
+it inactive. On 2026-06-05 the on-VPS image was ~5.5 months old and **only
+20/50 tunnels connected**; pulling the current image (`image: qmcgaw/gluetun`,
+unpinned = latest) jumped it to **43/50**. So the fix for "lots of regions dead"
+is almost always `docker compose pull && docker compose up -d --force-recreate`,
+which the weekly cron now does. The 7 PIA micro-regions that stayed dead even on
+a fresh image (Wyoming, New Hampshire, Oklahoma, Rhode Island, the Carolinas/
+Dakotas, Vermont — PIA genuinely removed them) were swapped for working NA/EU
+regions (New York, Vancouver, Mexico, Netherlands, France, UK London, Berlin),
+giving ~50/50. When picking replacements, test a candidate first
+(`docker run --rm --cap-add=NET_ADMIN -e VPN_SERVICE_PROVIDER='private internet access' -e OPENVPN_USER=… -e OPENVPN_PASSWORD=… -e SERVER_REGIONS='<region>' -e HTTPPROXY=on -p 9999:8888 qmcgaw/gluetun`
+then `curl -x http://127.0.0.1:9999 https://api.ipify.org`) and keep `main.go`'s
+endpoint `Name` 1:1 with the compose `SERVER_REGIONS`.
 
 **Resource note:** idle tunnels use ~85 MiB each (cap 256 MiB); 50 ≈ ~4 GiB on
 the 47 GiB host. CPU caps are `cpus: 0.50` per container (raised from `0.10` to
