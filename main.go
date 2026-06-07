@@ -258,8 +258,10 @@ func NewVPNPool() *VPNPool {
 	}
 }
 
-// GetNextEndpoint returns the next VPN endpoint using round-robin
-func (p *VPNPool) GetNextEndpoint() *VPNEndpoint {
+// GetNextEndpoint returns the next active VPN endpoint using round-robin.
+// The bool is false when no endpoint is currently active; callers must not use
+// the returned pointer in that case.
+func (p *VPNPool) GetNextEndpoint() (*VPNEndpoint, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -274,17 +276,20 @@ func (p *VPNPool) GetNextEndpoint() *VPNEndpoint {
 		endpoint.mu.RUnlock()
 
 		if active {
-			return endpoint
+			return endpoint, true
 		}
 		attempts++
 	}
 
-	// If no active endpoints, return the first one anyway
-	return p.endpoints[0]
+	// No active endpoints available.
+	log.Printf("WARN GetNextEndpoint: all %d endpoints inactive, returning 503", len(p.endpoints))
+	return nil, false
 }
 
-// GetRandomEndpoint returns a random VPN endpoint
-func (p *VPNPool) GetRandomEndpoint() *VPNEndpoint {
+// GetRandomEndpoint returns a random active VPN endpoint.
+// The bool is false when no endpoint is currently active; callers must not use
+// the returned pointer in that case.
+func (p *VPNPool) GetRandomEndpoint() (*VPNEndpoint, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -298,10 +303,11 @@ func (p *VPNPool) GetRandomEndpoint() *VPNEndpoint {
 	}
 
 	if len(activeEndpoints) == 0 {
-		return p.endpoints[0]
+		log.Printf("WARN GetRandomEndpoint: all %d endpoints inactive, returning 503", len(p.endpoints))
+		return nil, false
 	}
 
-	return activeEndpoints[rand.Intn(len(activeEndpoints))]
+	return activeEndpoints[rand.Intn(len(activeEndpoints))], true
 }
 
 // GetEndpointByName returns a specific VPN endpoint by name
@@ -342,12 +348,24 @@ func (p *VPNPool) StartHealthChecks(interval time.Duration) {
 }
 
 // runHealthCheck probes all endpoints concurrently and updates their Active flag.
+// A semaphore limits concurrent in-flight probes to 10 to avoid a thundering
+// herd of HTTPS connections during startup or after a mass container restart.
+// Each goroutine also sleeps a small random jitter (0–15 s) after acquiring its
+// slot so the actual network calls are spread across the cycle window rather
+// than all firing at once.
 func (p *VPNPool) runHealthCheck() {
+	const maxConcurrent = 10
+	sem := make(chan struct{}, maxConcurrent)
+
 	var wg sync.WaitGroup
 	for _, ep := range p.endpoints {
 		wg.Add(1)
 		go func(ep *VPNEndpoint) {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			// Jitter spread across 0–15 s to avoid a synchronised wave.
+			time.Sleep(time.Duration(rand.Intn(15)) * time.Second)
 			ok := ep.probe()
 			if ep.setActive(ok) {
 				state := "INACTIVE"
@@ -417,7 +435,12 @@ func (s *ProxyServer) handleProxy(w http.ResponseWriter, r *http.Request) {
 	var endpoint *VPNEndpoint
 	switch strategy {
 	case "random":
-		endpoint = s.vpnPool.GetRandomEndpoint()
+		ep, ok := s.vpnPool.GetRandomEndpoint()
+		if !ok {
+			http.Error(w, "No VPN endpoints available", http.StatusServiceUnavailable)
+			return
+		}
+		endpoint = ep
 	case "specific":
 		if vpnName != "" {
 			endpoint = s.vpnPool.GetEndpointByName(vpnName)
@@ -431,7 +454,12 @@ func (s *ProxyServer) handleProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		// Round-robin by default
-		endpoint = s.vpnPool.GetNextEndpoint()
+		ep, ok := s.vpnPool.GetNextEndpoint()
+		if !ok {
+			http.Error(w, "No VPN endpoints available", http.StatusServiceUnavailable)
+			return
+		}
+		endpoint = ep
 	}
 
 	// Reuse the pre-built client for this endpoint (avoids spawning a new

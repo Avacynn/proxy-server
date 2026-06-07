@@ -63,12 +63,19 @@ docker ps --filter name=vpn- --format '{{.Names}}' | wc -l        # → 50
 ```
 
 **Weekly maintenance cron** (root crontab on the Main VPS) Sunday 3am: pulls a
-fresh gluetun image (keeps the server list current — see below), recreates the
-farm (clears memory leaks), and reconciles any stopped container (the old
-version restarted only already-running containers — that was the ratchet):
+fresh gluetun image (keeps the server list current — see below), then recreates
+the farm in batches of 10 with 20s gaps between batches (keeps ~40 tunnels live
+throughout maintenance, clears memory leaks, and reconciles any stopped
+container). The script lives at `scripts/staggered-restart.sh` in this repo.
+
+**To update the VPS crontab manually** (`crontab -e` as root on the VPS):
 ```cron
-0 3 * * 0 cd /opt/reverse-proxy/apps/proxy-server && docker compose pull && docker compose up -d --force-recreate --remove-orphans >> /var/log/vpn-restart.log 2>&1
+0 3 * * 0 cd /opt/reverse-proxy/apps/proxy-server && bash scripts/staggered-restart.sh >> /var/log/vpn-restart.log 2>&1
 ```
+
+**Do NOT** use the old one-liner (`docker compose up -d --force-recreate` on all 50
+at once) — it drives host CPU load to ~50 for ~60s (50 concurrent OpenVPN inits
+on a 12-core host) and causes a complete proxy outage during that window.
 
 ## Dead regions = a STALE server list, not bad config
 
