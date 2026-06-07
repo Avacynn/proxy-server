@@ -3,14 +3,17 @@
   "peacock.affectActivityBar": false,
   "workbench.colorCustomizations": {
     "titleBar.activeBackground": "#4a5260",
-    "titleBar.activeForeground": "#e6e6e6",
-    "titleBar.inactiveBackground": "#4a5260",
-    "titleBar.inactiveForeground": "#bdbdbd",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#4a526099",
+    "titleBar.inactiveForeground": "#e7e7e799",
     "activityBar.activeBorder": "#4a5260",
     "statusBar.background": "#4a5260",
-    "statusBar.foreground": "#e6e6e6",
+    "statusBar.foreground": "#e7e7e7",
     "statusBar.noFolderBackground": "#4a5260",
-    "statusBarItem.remoteBackground": "#333944",
-    "statusBarItem.remoteForeground": "#e6e6e6"
+    "statusBarItem.remoteBackground": "#4a5260",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#606b7d",
+    "statusBarItem.hoverBackground": "#606b7d"
   }
 }
