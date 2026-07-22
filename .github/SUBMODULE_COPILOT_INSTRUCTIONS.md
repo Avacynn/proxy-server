@@ -277,6 +277,44 @@ resp, err := http.Post("http://localhost:8083/api/image/generate",
 - Cache generated images locally — don't re-generate the same asset on every request.
 - For batch generation (e.g. generating all game icons at build time), call sequentially to avoid rate limits.
 
+## Customer Support Messaging ("Contact Us")
+The infrastructure includes a shared **support-gateway** service that powers a two-way "Contact us" chat backed by a Discord channel. A visitor opens the widget on your app and submits a message; it posts to a central Discord support channel as an embed with its own thread. Staff reply in that thread and the reply streams back to the visitor's browser in real time (SSE). Unlike the payment/image services there is **no server-to-server contract to implement** — the widget is fully self-contained and same-origin.
+
+### Service Details
+- **Internal URL:** `http://localhost:9005` (loopback-only; the gateway never gets its own public domain).
+- **Reached from your app** over a same-origin `/api/support/` path proxied by your app's own nginx vhost — so there is no CORS and no cross-origin EventSource/cookie friction.
+
+### Integrating your app (mostly infra-side; no app-backend code)
+1.  **Allow-list:** add your app to `apps/support-gateway/src/apps.ts` (`{ label, color }` — drives the Discord embed). Unknown `app_id`s are rejected by the gateway.
+2.  **nginx (infra repo):** add a `location /api/support/` block to your app's vhost, proxying to `127.0.0.1:9005` with SSE tuning + the shared rate-limit zone (defined once in `configs/nginx/00-support-gateway.conf`):
+    ```nginx
+    location /api/support/ {
+        limit_req zone=support_limit burst=10 nodelay;
+        proxy_pass http://127.0.0.1:9005;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;                 # SSE — do not buffer the event stream
+        proxy_read_timeout 86400s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        add_header Cache-Control "no-transform";
+    }
+    ```
+3.  **Frontend:** drop the widget script into your page — one tag, no build step, no dependencies:
+    ```html
+    <script defer src="/api/support/widget.js" data-app-id="your-app-name"></script>
+    ```
+
+That's the whole integration: **no app-backend code and no secrets.** The widget renders a floating "Contact us" button (its styles isolated in a shadow DOM so they can't clash with your CSS), persists the conversation in `localStorage` so a returning visitor resumes the same thread, and handles SSE reconnection/replay automatically.
+
+### Behavior notes
+- **Real-time both ways:** customer follow-ups relay into the Discord thread; staff replies — and conversation close (staff `!close` or archiving the thread) — stream to the browser over SSE with `Last-Event-ID` replay after a reconnect.
+- **Auth:** each conversation is authenticated by a random per-conversation bearer token (stored server-side only as a hash) minted at creation and held in the visitor's `localStorage`. There is **no shared app secret** for you to manage.
+- **Abuse controls** live in the gateway + the nginx `limit_req` (honeypot field, submit-timing check, per-IP conversation caps, per-conversation message caps, length limits).
+- Closed conversations are retained 30 days, then purged.
+
 ## Troubleshooting
 - **Deployment Loop:** If the server keeps rebuilding, check if `main` or `dist/` files are being tracked by git. Remove them with `git rm --cached <file>`.
 - **Port Conflicts:** Ensure you are using `os.Getenv("PORT")`.
