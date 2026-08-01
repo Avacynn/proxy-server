@@ -88,17 +88,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Texas
-  vpn-texas:
+  # PIA VPN - US Salt Lake City
+  vpn-saltlakecity:
     image: qmcgaw/gluetun
-    container_name: vpn-texas
+    container_name: vpn-saltlakecity
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Texas
+      - SERVER_REGIONS=US Salt Lake City
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -204,17 +204,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Atlanta
-  vpn-atlanta:
+  # PIA VPN - Ireland
+  vpn-ireland:
     image: qmcgaw/gluetun
-    container_name: vpn-atlanta
+    container_name: vpn-ireland
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Atlanta
+      - SERVER_REGIONS=Ireland
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -291,17 +291,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Silicon Valley
-  vpn-siliconvalley:
+  # PIA VPN - CA Montreal
+  vpn-montreal:
     image: qmcgaw/gluetun
-    container_name: vpn-siliconvalley
+    container_name: vpn-montreal
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Silicon Valley
+      - SERVER_REGIONS=CA Montreal
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -465,17 +465,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Oregon
-  vpn-oregon:
+  # PIA VPN - ES Madrid
+  vpn-madrid:
     image: qmcgaw/gluetun
-    container_name: vpn-oregon
+    container_name: vpn-madrid
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Oregon
+      - SERVER_REGIONS=ES Madrid
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -494,17 +494,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Virginia
-  vpn-virginia:
+  # PIA VPN - IT Milano
+  vpn-milano:
     image: qmcgaw/gluetun
-    container_name: vpn-virginia
+    container_name: vpn-milano
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Virginia
+      - SERVER_REGIONS=IT Milano
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -581,17 +581,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US Pennsylvania
-  vpn-pennsylvania:
+  # PIA VPN - SE Stockholm
+  vpn-stockholm:
     image: qmcgaw/gluetun
-    container_name: vpn-pennsylvania
+    container_name: vpn-stockholm
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US Pennsylvania
+      - SERVER_REGIONS=SE Stockholm
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
@@ -1422,17 +1422,17 @@ services:
       start_period: 40s
       retries: 3
 
-  # PIA VPN - US West Virginia
-  vpn-westvirginia:
+  # PIA VPN - Poland
+  vpn-poland:
     image: qmcgaw/gluetun
-    container_name: vpn-westvirginia
+    container_name: vpn-poland
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US West Virginia
+      - SERVER_REGIONS=Poland
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:

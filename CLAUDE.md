@@ -95,6 +95,25 @@ giving ~50/50. When picking replacements, test a candidate first
 then `curl -x http://127.0.0.1:9999 https://api.ipify.org`) and keep `main.go`'s
 endpoint `Name` 1:1 with the compose `SERVER_REGIONS`.
 
+**A fresh image does NOT always help — PIA keeps retiring US micro-regions.**
+On 2026-07-31 seven more regions died (Texas, Atlanta, Silicon Valley, Oregon,
+Virginia, Pennsylvania, West Virginia → 43/50). The image was already current,
+and both `docker restart` and `docker compose up -d --force-recreate` failed to
+revive them, so the 2026-06-05 playbook did not apply. Candidate testing showed
+the retirement is US-wide: of 12 unused US/CA regions only **US Salt Lake City**
+and **CA Montreal** connected, while **all 12** EU candidates connected. The
+seven were swapped for Salt Lake City, Montreal, Ireland, ES Madrid, IT Milano,
+SE Stockholm, and Poland — same ports and static IPs, `main.go` names 1:1.
+
+Two traps when diagnosing this:
+
+- **`docker ps` health lies.** Five of the seven reported `healthy` while unable
+  to pass traffic (the healthcheck runs every 5m with 3 retries). Trust the
+  proxy's own `[health] N/50` log line, or curl through the port.
+- **ICMP is not a liveness test.** `US Chicago` fails to answer ping on all 8 of
+  its listed IPs yet its tunnel works. Only an actual gluetun container plus a
+  `curl -x` through it proves a region is usable.
+
 **Resource note:** idle tunnels use ~85 MiB each (cap 256 MiB); 50 ≈ ~4 GiB on
 the 47 GiB host. CPU caps are `cpus: 0.50` per container (raised from `0.10` to
 stop CFS throttling — see infra `VPS_PERFORMANCE_INVESTIGATION.md`).
