@@ -147,7 +147,9 @@ func (f *forwardProxy) handleConnect(w http.ResponseWriter, r *http.Request, end
 		http.Error(w, "Failed to open tunnel: "+err.Error(), http.StatusBadGateway)
 		return
 	}
-	resp.Body.Close()
+	// resp.Body is deliberately left alone. The connection is the tunnel, not a
+	// message body: closing it makes net/http drain the socket to EOF, which
+	// tears down the tunnel before the caller sends its first byte.
 	if resp.StatusCode != http.StatusOK {
 		http.Error(w, "VPN endpoint refused CONNECT: "+resp.Status, http.StatusBadGateway)
 		return
