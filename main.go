@@ -59,12 +59,29 @@ func isPrivateIP(host string) bool {
 }
 
 // sensitiveHeaders are stripped before forwarding requests to targets.
+// The x-forwarded-*/cf-* group carries the caller's own IP, which Nginx and
+// Cloudflare add on the way in. Passing those on tells any target that reads
+// them exactly who is behind the tunnel, which defeats the point of the farm.
 var sensitiveHeaders = map[string]bool{
-	"cookie":        true,
-	"authorization": true,
-	"x-api-key":     true,
-	"set-cookie":    true,
+	"cookie":              true,
+	"authorization":       true,
+	"x-api-key":           true,
+	"set-cookie":          true,
 	"proxy-authorization": true,
+	"x-forwarded-for":     true,
+	"x-forwarded-host":    true,
+	"x-forwarded-port":    true,
+	"x-forwarded-proto":   true,
+	"x-forwarded-server":  true,
+	"x-real-ip":           true,
+	"forwarded":           true,
+	"true-client-ip":      true,
+	"cdn-loop":            true,
+	"cf-connecting-ip":    true,
+	"cf-ipcountry":        true,
+	"cf-ray":              true,
+	"cf-visitor":          true,
+	"cf-worker":           true,
 }
 
 func requireAPIKey(next http.HandlerFunc) http.HandlerFunc {
@@ -599,6 +616,10 @@ func main() {
 	// Continuously probe tunnels so round-robin/random routing skips endpoints
 	// whose VPN region is currently unreachable (otherwise callers get 502s).
 	server.vpnPool.StartHealthChecks(60 * time.Second)
+
+	// Ordinary HTTP-proxy protocol on its own port, for callers that set
+	// HTTPS_PROXY instead of calling the /proxy?url= API.
+	StartForwardProxy(server.vpnPool)
 
 	http.HandleFunc("/", server.handleRoot)
 	http.HandleFunc("/proxy", requireAPIKey(server.handleProxy))
