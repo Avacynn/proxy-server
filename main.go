@@ -243,7 +243,7 @@ func NewVPNPool() *VPNPool {
 		{Name: "US East Streaming Optimized", ProxyURL: "http://127.0.0.1:8910", Active: true},
 		{Name: "US Iowa", ProxyURL: "http://127.0.0.1:8911", Active: true},
 		{Name: "US Kansas", ProxyURL: "http://127.0.0.1:8912", Active: true},
-		{Name: "US West Streaming Optimized", ProxyURL: "http://127.0.0.1:8913", Active: true},
+		{Name: "US Indiana", ProxyURL: "http://127.0.0.1:8913", Active: true},
 		{Name: "US Louisiana", ProxyURL: "http://127.0.0.1:8914", Active: true},
 		{Name: "US Maine", ProxyURL: "http://127.0.0.1:8915", Active: true},
 		{Name: "US Minnesota", ProxyURL: "http://127.0.0.1:8916", Active: true},

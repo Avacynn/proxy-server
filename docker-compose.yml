@@ -930,16 +930,16 @@ services:
       retries: 3
 
   # PIA VPN - US West Streaming Optimized
-  vpn-west-streaming:
+  vpn-indiana:
     image: qmcgaw/gluetun
-    container_name: vpn-west-streaming
+    container_name: vpn-indiana
     cap_add:
       - NET_ADMIN
     environment:
       - VPN_SERVICE_PROVIDER=private internet access
       - OPENVPN_USER=${PIA_USERNAME}
       - OPENVPN_PASSWORD=${PIA_PASSWORD}
-      - SERVER_REGIONS=US West Streaming Optimized
+      - SERVER_REGIONS=US Indiana
       - FIREWALL_OUTBOUND_SUBNETS=172.22.0.0/16
       - HTTPPROXY=on
     networks:
